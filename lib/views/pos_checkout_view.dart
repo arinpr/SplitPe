@@ -26,6 +26,7 @@ class PosCheckoutViewState extends State<PosCheckoutView> {
   final _note = TextEditingController();
   final _limit = TextEditingController(text: '1999');
   int _people = 4;
+  TrancheStrategy _strategy = TrancheStrategy.maxCap;
   SplitOrder? _order;
 
   @override
@@ -67,6 +68,18 @@ class PosCheckoutViewState extends State<PosCheckoutView> {
     }
   }
 
+  String? _validateLimit(String? value) {
+    try {
+      final paise = SplitEngine.toPaise(value ?? '');
+      if (paise > 199900) {
+        return 'Max ₹1,999';
+      }
+      return null;
+    } on FormatException catch (error) {
+      return error.message;
+    }
+  }
+
   void _createSplit() {
     FocusScope.of(context).unfocus();
     if (!_form.currentState!.validate()) return;
@@ -90,6 +103,7 @@ class PosCheckoutViewState extends State<PosCheckoutView> {
               merchantVpa: _vpa.text.trim(),
               merchantName: name,
               maxTranche: SplitEngine.toPaise(_limit.text) / 100,
+              strategy: _strategy,
               note: note,
             );
       setState(() => _order = order);
@@ -292,35 +306,202 @@ class PosCheckoutViewState extends State<PosCheckoutView> {
                       ],
                     )
                   else
-                    Row(
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Expanded(
-                          child: Text(
-                            'Maximum per split',
-                            style: TextStyle(
-                              color: AppColors.muted,
-                              fontWeight: FontWeight.w500,
+                        Row(
+                          children: [
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Maximum per split',
+                                    style: TextStyle(
+                                      color: AppColors.ink,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    'Strictly capped at ₹1,999 for compliance',
+                                    style: TextStyle(
+                                      color: AppColors.muted,
+                                      fontSize: 11,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
+                            SizedBox(
+                              width: 120,
+                              child: TextFormField(
+                                controller: _limit,
+                                validator: _validateLimit,
+                                keyboardType: const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                ),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp(r'[0-9.]'),
+                                  ),
+                                ],
+                                decoration: const InputDecoration(
+                                  prefixText: '₹ ',
+                                  isDense: true,
+                                  contentPadding: EdgeInsets.all(12),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        SizedBox(
-                          width: 126,
-                          child: TextFormField(
-                            controller: _limit,
-                            validator: _validateAmount,
-                            keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true,
-                            ),
-                            inputFormatters: [
-                              FilteringTextInputFormatter.allow(
-                                RegExp(r'[0-9.]'),
+                        const SizedBox(height: 14),
+                        // Quick cap chips
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: ['1999', '1499', '999', '499'].map((val) {
+                            final isSelected = _limit.text.trim() == val;
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _limit.text = val;
+                                  _order = null;
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? AppColors.primarySoft
+                                      : Colors.white.withValues(alpha: 0.7),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : AppColors.border,
+                                    width: isSelected ? 1.4 : 1.0,
+                                  ),
+                                ),
+                                child: Text(
+                                  '₹$val${val == '1999' ? ' (Default)' : ''}',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : AppColors.muted,
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        const SizedBox(height: 14),
+                        // Strategy Mode Toggle
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE9F2F5),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setState(() {
+                                    _strategy = TrancheStrategy.maxCap;
+                                    _order = null;
+                                  }),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _strategy == TrancheStrategy.maxCap
+                                          ? Colors.white
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(11),
+                                      boxShadow: _strategy == TrancheStrategy.maxCap
+                                          ? [
+                                              BoxShadow(
+                                                color: const Color(0xFF0C2B38)
+                                                    .withValues(alpha: 0.08),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        '₹1,999 Slices',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight:
+                                              _strategy == TrancheStrategy.maxCap
+                                                  ? FontWeight.w700
+                                                  : FontWeight.w500,
+                                          color: _strategy == TrancheStrategy.maxCap
+                                              ? AppColors.primary
+                                              : AppColors.muted,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              Expanded(
+                                child: GestureDetector(
+                                  onTap: () => setState(() {
+                                    _strategy = TrancheStrategy.equal;
+                                    _order = null;
+                                  }),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: _strategy == TrancheStrategy.equal
+                                          ? Colors.white
+                                          : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(11),
+                                      boxShadow: _strategy == TrancheStrategy.equal
+                                          ? [
+                                              BoxShadow(
+                                                color: const Color(0xFF0C2B38)
+                                                    .withValues(alpha: 0.08),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        'Equal Shares',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight:
+                                              _strategy == TrancheStrategy.equal
+                                                  ? FontWeight.w700
+                                                  : FontWeight.w500,
+                                          color: _strategy == TrancheStrategy.equal
+                                              ? AppColors.primary
+                                              : AppColors.muted,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ],
-                            decoration: const InputDecoration(
-                              prefixText: '₹ ',
-                              isDense: true,
-                              contentPadding: EdgeInsets.all(12),
-                            ),
                           ),
                         ),
                       ],

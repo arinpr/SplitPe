@@ -10,6 +10,14 @@
 -keep class dev.steenbakker.mobile_scanner.** { *; }
 -keep class com.google.mlkit.vision.barcode.** { *; }
 
+# Google Play Core In-App Update
+-keep class com.google.android.play.core.** { *; }
+-keep class de.ffuf.in_app_update.** { *; }
+
+# In-App Review
+-keep class dev.vinicios.in_app_review.** { *; }
+-keep class io.flutter.plugins.inappreview.** { *; }
+
 # Share Plus
 -keep class dev.fluttercommunity.plus.share.** { *; }
 

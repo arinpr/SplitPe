@@ -43,9 +43,9 @@ class _HomeScreenState extends State<HomeScreen> {
       label: 'Estimate',
     ),
     LiquidTabItem(
-      icon: Icons.info_outline_rounded,
-      selectedIcon: Icons.info_rounded,
-      label: 'About',
+      icon: Icons.tune_outlined,
+      selectedIcon: Icons.tune_rounded,
+      label: 'Settings',
     ),
   ];
 

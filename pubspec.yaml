@@ -1,5 +1,5 @@
 name: splitpee
-description: "SplitPee - Smart UPI Split. 0% MDR Arbitrage & Algorithmic UPI Bill-Tranching System."
+description: "SplitPee - Smart UPI Split. Smart UPI bill tranching and group expense organizer."
 homepage: "https://splitpee.app"
 publish_to: 'none'
 
@@ -20,6 +20,9 @@ dependencies:
   intl: ^0.20.3
   share_plus: ^13.3.0
   mobile_scanner: ^7.4.2
+  in_app_review: ^2.0.12
+  in_app_update: ^5.0.0
+  package_info_plus: ^10.2.1
 
 dev_dependencies:
   flutter_test:

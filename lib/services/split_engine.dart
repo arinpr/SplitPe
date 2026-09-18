@@ -2,9 +2,20 @@ import 'dart:math';
 import '../models/split_order.dart';
 import '../models/tranche.dart';
 
+enum TrancheStrategy {
+  /// Slices the bill into ₹1,999 chunks first, with the remainder in the final split.
+  /// (e.g. ₹5,000 -> ₹1,999, ₹1,999, ₹1,002; ₹2,000 -> ₹1,999, ₹1)
+  maxCap,
+
+  /// Distributes the bill into balanced equal shares where each share is <= ₹1,999.
+  /// (e.g. ₹5,000 -> ₹1,666.67, ₹1,666.67, ₹1,666.66; ₹2,000 -> ₹1,000, ₹1,000)
+  equal,
+}
+
 /// All split arithmetic uses integer paise so no money is lost to rounding.
 abstract final class SplitEngine {
-  static const double safeTrancheCap = 1999.0; // A configurable default, not a fee rule.
+  /// Strict maximum cap per split (strictly under ₹2,000, capped at ₹1,999).
+  static const double safeTrancheCap = 1999.0;
   static const int maxAmountPaise = 100000000; // UI planning limit: ₹10 lakh.
   static const int maxParts = 200;
 
@@ -39,16 +50,41 @@ abstract final class SplitEngine {
   static List<double> calculateTrancheAmounts({
     required double totalAmount,
     double maxTranche = safeTrancheCap,
-    bool randomize = false,
+    TrancheStrategy strategy = TrancheStrategy.maxCap,
   }) {
+    if (maxTranche > safeTrancheCap) {
+      throw ArgumentError('Per-split limit cannot exceed ₹1,999.');
+    }
     final total = _checkedPaise(totalAmount);
-    final cap = _checkedPaise(maxTranche);
-    final count = (total + cap - 1) ~/ cap;
-    if (count > maxParts) throw ArgumentError('Increase the per-split limit to create no more than $maxParts parts.');
-    // Deterministic equal parts are easier to review than random payment amounts.
-    final base = total ~/ count;
-    final extra = total % count;
-    return List.generate(count, (index) => (base + (index < extra ? 1 : 0)) / 100);
+    final cap = _checkedPaise(min(maxTranche, safeTrancheCap));
+
+    if (total <= cap) {
+      return [total / 100];
+    }
+
+    if (strategy == TrancheStrategy.maxCap) {
+      // Slices into ₹1,999 chunks, remainder in the last tranche
+      final List<double> amounts = [];
+      int remaining = total;
+      while (remaining > cap) {
+        amounts.add(cap / 100);
+        remaining -= cap;
+        if (amounts.length >= maxParts - 1) break;
+      }
+      if (remaining > 0) {
+        amounts.add(remaining / 100);
+      }
+      return amounts;
+    } else {
+      // Equal distribution where all parts are <= cap
+      final count = (total + cap - 1) ~/ cap;
+      if (count > maxParts) {
+        throw ArgumentError('Increase the per-split limit to create no more than $maxParts parts.');
+      }
+      final base = total ~/ count;
+      final extra = total % count;
+      return List.generate(count, (index) => (base + (index < extra ? 1 : 0)) / 100);
+    }
   }
 
   static SplitOrder createTrancheOrder({
@@ -57,10 +93,16 @@ abstract final class SplitEngine {
     required String merchantName,
     String note = 'SplitPee bill split',
     double maxTranche = safeTrancheCap,
-    bool randomize = false,
+    TrancheStrategy strategy = TrancheStrategy.maxCap,
   }) => _order(
-    amounts: calculateTrancheAmounts(totalAmount: totalAmount, maxTranche: maxTranche),
-    merchantVpa: merchantVpa, merchantName: merchantName, note: note,
+    amounts: calculateTrancheAmounts(
+      totalAmount: totalAmount,
+      maxTranche: maxTranche,
+      strategy: strategy,
+    ),
+    merchantVpa: merchantVpa,
+    merchantName: merchantName,
+    note: note,
   );
 
   static SplitOrder createGroupSplitOrder({
