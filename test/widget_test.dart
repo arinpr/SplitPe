@@ -82,10 +82,19 @@ void main() {
     expect(parsed['tn'], 'Lunch');
   });
 
-  testWidgets('SplitPeeApp light theme smoke test', (WidgetTester tester) async {
+  testWidgets('SplitPeeApp splash screen shows Made with ❤️ in India and navigates to HomeScreen', (WidgetTester tester) async {
     await tester.pumpWidget(const SplitPeeApp());
+
+    // Verify Splash Screen elements
     expect(find.text('SplitPee'), findsWidgets);
     expect(find.text('Smart UPI Split'), findsWidgets);
+    expect(find.text('Made with ❤️ in India'), findsOneWidget);
+
+    // Fast-forward past splash timer (2000ms) and fade transition (350ms)
+    await tester.pump(const Duration(milliseconds: 2100));
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // Verify Home Screen elements
     expect(find.text('Split'), findsWidgets);
     expect(find.text('Friends'), findsWidgets);
     expect(find.text('Settings'), findsWidgets);

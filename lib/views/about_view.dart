@@ -534,6 +534,34 @@ class _AboutViewState extends State<AboutView> {
               ],
             ),
           ),
+          const SizedBox(height: 24),
+
+          // 7. Footer - Made with ❤️ in India & Copyright
+          Center(
+            child: Column(
+              children: [
+                const Text(
+                  AppInfo.madeInIndia,
+                  style: TextStyle(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.ink,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  AppInfo.copyright,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: AppColors.muted.withValues(alpha: 0.75),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
         ],
       ),
     );
