@@ -95,46 +95,47 @@ When completing the Google Play **Data Safety Form**:
 
 ---
 
-## 4. Generating Your Production Release Keystore
+## 4. Production Release Keystore (Generated & Verified)
 
-Run the following command in PowerShell / Terminal to generate your production upload keystore:
+Your production upload keystore has been generated and verified at:
+`C:\Users\arind\Documents\SplitPe\upload-keystore.jks`
 
-```powershell
-keytool -genkey -v -keystore C:\Users\arind\Documents\SplitPe\upload-keystore.jks `
-  -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 `
-  -alias splitpee_upload_key `
-  -dname "CN=Anupam Pradhan, OU=SplitPee, O=Anupam Pradhan, L=Bhubaneswar, ST=Odisha, C=IN"
-```
+- **Keystore Path**: `C:\Users\arind\Documents\SplitPe\upload-keystore.jks`
+- **Key Alias**: `splitpee_upload_key`
+- **Store Password**: `SplitPee@Play2026!`
+- **Key Password**: `SplitPee@Play2026!`
+- **Certificate Validity**: Until **February 3, 2054** (10,000 days)
+- **SHA-1 Fingerprint**: `5C:B8:51:23:BD:F1:07:79:73:19:28:D0:2E:43:87:F7:FE:7A:3C:2E`
+- **SHA-256 Fingerprint**: `91:B5:42:04:55:31:DC:4F:2D:F1:DA:27:FC:C8:1D:EA:22:74:52:BE:65:D6:F2:CF:E8:4C:1C:76:53:E4:A3:B5`
 
-> ⚠️ **CRITICAL**: Store `upload-keystore.jks` in a secure location and back it up. If lost, Google Play will not allow you to update the app without contacting Play Console support for key reset.
+> ⚠️ **IMPORTANT**: `upload-keystore.jks` and `key.properties` are listed in `.gitignore` to prevent accidental commits. Back up `upload-keystore.jks` in a secure location (such as Google Drive or a password manager).
 
 ---
 
-## 5. Setting Up `android/key.properties`
+## 5. Configured `android/key.properties`
 
-Create a file named `android/key.properties` (this file is already in `.gitignore`):
+Active configuration:
 
 ```properties
-storePassword=YOUR_STORE_PASSWORD
-keyPassword=YOUR_KEY_PASSWORD
+storePassword=SplitPee@Play2026!
+keyPassword=SplitPee@Play2026!
 keyAlias=splitpee_upload_key
 storeFile=C:/Users/arind/Documents/SplitPe/upload-keystore.jks
 ```
 
 ---
 
-## 6. Building the Release App Bundle (AAB)
+## 6. Production Release App Bundle (AAB Built & Signed)
 
-To create the release Android App Bundle for Google Play Console submission:
+Your signed Android App Bundle is built, verified, and ready for Google Play Console upload:
 
+📂 **Release Bundle Path**:  
+`C:\Users\arind\Documents\SplitPe\build\app\outputs\bundle\release\app-release.aab`
+
+To rebuild in the future:
 ```powershell
-flutter clean
-flutter pub get
 flutter build appbundle --release
 ```
-
-The output bundle will be generated at:
-`build/app/outputs/bundle/release/app-release.aab`
 
 ---
 
@@ -142,11 +143,11 @@ The output bundle will be generated at:
 
 - [x] App Name updated to `SplitPee - Smart UPI Split`
 - [x] Application ID set to `com.anupampradhan.splitpee`
-- [x] Compile SDK: 35 (Android 15) & Target SDK: 35
+- [x] Compile SDK: 36 (Android 16 preview/back-compat) & Target SDK: 35 (Android 15)
 - [x] Pure light liquid-glass theme with spring physics and lens refraction
 - [x] ProGuard / R8 rules configured in `android/app/proguard-rules.pro`
 - [x] AndroidManifest configured with camera permission (`required=false`) and complete UPI `<queries>`
-- [x] Privacy Policy generated with Anupam Pradhan ownership and `anupampradhan161@gmail.com`
+- [x] Live Privacy Policy at `https://splitpee.vercel.app/privacy-policy` with Anupam Pradhan ownership and `anupampradhan161@gmail.com`
 - [x] All tests passing (`flutter analyze` & `flutter test`)
-- [ ] Run `flutter build appbundle --release`
-- [ ] Upload `app-release.aab` to Google Play Console Internal Testing or Production track
+- [x] Release App Bundle built and signed (`build/app/outputs/bundle/release/app-release.aab`)
+- [ ] Upload `app-release.aab` to Google Play Console (Production or Closed Testing track)
