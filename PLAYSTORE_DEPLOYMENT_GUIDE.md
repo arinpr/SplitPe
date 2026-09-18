@@ -4,8 +4,8 @@
 **Developer & Owner**: Anupam Pradhan  
 **Support Email**: anupampradhan161@gmail.com  
 **Application ID**: `com.anupampradhan.splitpee`  
-**Version**: 1.0.0 (Version Code: 1)  
-**Target SDK**: Android 15 (API 35)  
+**Version**: 1.0.0 (Version Code: 2)  
+**Target SDK**: API 36  
 **Minimum SDK**: Android 7.0 (API 24+)  
 
 ---
