@@ -2,357 +2,196 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/split_engine.dart';
 import '../theme/app_theme.dart';
+import '../widgets/glass_card.dart';
+import '../widgets/liquid_glass.dart';
 
 class QrScannerView extends StatefulWidget {
   const QrScannerView({super.key});
-
   @override
   State<QrScannerView> createState() => _QrScannerViewState();
 }
 
-class _QrScannerViewState extends State<QrScannerView>
-    with SingleTickerProviderStateMixin {
-  final MobileScannerController _scannerController = MobileScannerController(
-    detectionSpeed: DetectionSpeed.noDuplicates,
-    returnImage: false,
-  );
-  late AnimationController _laserController;
-  bool _isTorchOn = false;
-  bool _hasScanned = false;
+class _QrScannerViewState extends State<QrScannerView> with WidgetsBindingObserver {
+  final _scanner = MobileScannerController(autoStart: false, detectionSpeed: DetectionSpeed.noDuplicates, formats: const [BarcodeFormat.qrCode]);
+  bool _done = false;
+  bool _manualOpen = false;
+  String? _error;
 
   @override
   void initState() {
     super.initState();
-    _laserController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    )..repeat(reverse: true);
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startCamera());
+  }
+
+  Future<void> _startCamera() async {
+    if (!mounted || _done || _manualOpen) return;
+    try { await _scanner.start(); } catch (_) { if (mounted) setState(() => _error = 'Camera unavailable. You can enter your UPI details below.'); }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (!_scanner.value.hasCameraPermission) return;
+    if (state == AppLifecycleState.resumed) { _startCamera(); }
+    else { _scanner.stop(); }
   }
 
   @override
   void dispose() {
-    _laserController.dispose();
-    _scannerController.dispose();
+    WidgetsBinding.instance.removeObserver(this);
+    _scanner.dispose();
     super.dispose();
   }
 
-  void _onDetect(BarcodeCapture capture) {
-    if (_hasScanned) return;
-    final barcodes = capture.barcodes;
-    for (final barcode in barcodes) {
-      final rawValue = barcode.rawValue;
-      if (rawValue != null && rawValue.isNotEmpty) {
-        _handleQrResult(rawValue);
-        break;
-      }
+  void _read(String raw) {
+    if (_done) return;
+    try {
+      final result = SplitEngine.parseUpiUri(raw);
+      _done = true;
+      _scanner.stop();
+      Navigator.pop(context, result);
+    } on FormatException catch (e) {
+      setState(() => _error = e.message);
     }
   }
 
-  void _handleQrResult(String rawData) {
-    _hasScanned = true;
-    final parsed = SplitEngine.parseUpiUri(rawData);
-    Navigator.pop(context, parsed);
-  }
-
-  void _showManualEntryDialog() {
-    final textController = TextEditingController();
-    showDialog(
+  Future<void> _manualEntry() async {
+    _manualOpen = true;
+    await _scanner.stop();
+    if (!mounted) return;
+    final controller = TextEditingController();
+    final form = GlobalKey<FormState>();
+    final result = await showDialog<String>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text(
-          'PASTE UPI LINK / VPA',
-          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 0.8),
-        ),
-        content: TextField(
-          controller: textController,
-          style: const TextStyle(color: AppColors.textPrimary),
-          decoration: const InputDecoration(
-            hintText: 'e.g. upi://pay?pa=store@okhdfcbank&pn=Store',
-            hintStyle: TextStyle(color: AppColors.textMuted, fontSize: 12),
-            border: OutlineInputBorder(),
-          ),
-        ),
+      builder: (context) => AlertDialog(
+        title: const Text('Enter UPI details'),
+        content: Form(key: form, child: TextFormField(
+          controller: controller, autofocus: true, autocorrect: false, maxLines: 3,
+          decoration: const InputDecoration(labelText: 'UPI ID or payment link', hintText: 'name@bank'),
+          validator: (value) {
+            try { SplitEngine.parseUpiUri(value ?? ''); return null; } on FormatException catch (e) { return e.message; }
+          },
+        )),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _handleQrResult(textController.text);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryGreen,
-              foregroundColor: Colors.black,
-            ),
-            child: const Text('Use QR Data', style: TextStyle(fontWeight: FontWeight.w800)),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          FilledButton(onPressed: () { if (form.currentState!.validate()) Navigator.pop(context, controller.text); }, child: const Text('Use details')),
         ],
       ),
     );
+    // The dialog route may animate after its result completes.
+    await Future<void>.delayed(const Duration(milliseconds: 300));
+    controller.dispose();
+    if (!mounted) return;
+    _manualOpen = false;
+    if (result != null) { _read(result); } else { _startCamera(); }
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
+  Widget build(BuildContext context) => LiquidMeshBackground(
+    child: Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.black,
-        elevation: 0,
         title: const Text(
-          'SCAN MERCHANT QR',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.0,
-          ),
+          'Scan a UPI QR',
+          style: TextStyle(fontWeight: FontWeight.w700),
         ),
-        actions: [
-          IconButton(
-            icon: Icon(
-              _isTorchOn ? Icons.flash_on_rounded : Icons.flash_off_rounded,
-              color: _isTorchOn ? AppColors.goldenYellow : AppColors.textSecondary,
-            ),
-            onPressed: () async {
-              await _scannerController.toggleTorch();
-              setState(() {
-                _isTorchOn = !_isTorchOn;
-              });
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.flip_camera_ios_rounded, color: AppColors.textSecondary),
-            onPressed: () => _scannerController.switchCamera(),
-          ),
-        ],
       ),
-      body: SizedBox.expand(
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            // 1. Fullscreen Camera View (Anchored Full Viewport)
-            Positioned.fill(
-              child: MobileScanner(
-                controller: _scannerController,
-                fit: BoxFit.cover,
-                onDetect: _onDetect,
-                errorBuilder: (context, error) {
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24.0),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.camera_alt_outlined,
-                            size: 48,
-                            color: AppColors.textSecondary,
-                          ),
-                          const SizedBox(height: 12),
-                          const Text(
-                            'Camera unavailable on this device/platform.',
-                            style: TextStyle(color: AppColors.textSecondary),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: _showManualEntryDialog,
-                            icon: const Icon(Icons.paste_rounded, color: Colors.black, size: 16),
-                            label: const Text('Paste UPI Link / Demo Data'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primaryGreen,
-                              foregroundColor: Colors.black,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(22),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SectionTitle(
+                'Point. Scan. Review.',
+                subtitle:
+                    'Your camera reads the QR on your device. Images are never saved or uploaded.',
               ),
-            ),
-
-            // 2. Translucent Mask with Centered Cutout
-            Positioned.fill(
-              child: CustomPaint(
-                painter: _ScannerOverlayPainter(
-                  cutoutSize: const Size(260, 260),
-                  borderColor: AppColors.primaryGreen,
-                ),
-              ),
-            ),
-
-            // 3. Mathematical Center Viewfinder & Laser (Frame 0 Anchored)
-            Center(
-              child: SizedBox(
-                width: 260,
-                height: 260,
-                child: Stack(
-                  children: [
-                    // Corner Brackets
-                    Positioned.fill(
-                      child: Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.primaryGreen.withAlpha(120), width: 1.0),
-                        ),
-                      ),
-                    ),
-
-                    // Animated Smooth Laser Line
-                    AnimatedBuilder(
-                      animation: _laserController,
-                      builder: (context, child) {
-                        return Positioned(
-                          top: _laserController.value * 250,
-                          left: 8,
-                          right: 8,
-                          child: Container(
-                            height: 2.5,
-                            decoration: BoxDecoration(
-                              color: AppColors.primaryGreen,
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: AppColors.primaryGreen,
-                                  blurRadius: 8,
-                                  spreadRadius: 1.5,
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
+              const SizedBox(height: 22),
+              LiquidGlassCard(
+                padding: const EdgeInsets.all(12),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: AspectRatio(
+                    aspectRatio: 1,
+                    child: MobileScanner(
+                      controller: _scanner,
+                      onDetect: (capture) {
+                        if (_done || _manualOpen) return;
+                        for (final barcode in capture.barcodes) {
+                          if (barcode.rawValue != null) {
+                            _read(barcode.rawValue!);
+                            break;
+                          }
+                        }
                       },
+                      errorBuilder: (_, error) => Container(
+                        color: AppColors.primarySoft,
+                        padding: const EdgeInsets.all(24),
+                        child: const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.no_photography_outlined,
+                              size: 42,
+                              color: AppColors.primary,
+                            ),
+                            SizedBox(height: 14),
+                            Text(
+                              'Camera access is unavailable.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontWeight: FontWeight.w700),
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Allow camera permission in device settings, or enter your UPI details below.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: AppColors.muted,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ],
+                  ),
                 ),
               ),
-            ),
-
-            // 4. Bottom Hint & Demo Shortcuts
-            Positioned(
-              bottom: 30,
-              left: 20,
-              right: 20,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0C0D10).withAlpha(220),
-                      border: Border.all(color: const Color(0xFF27272A)),
-                    ),
-                    child: const Text(
-                      'ALIGN MERCHANT QR WITHIN THE FRAME',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.8,
-                        color: Colors.white,
-                      ),
-                      textAlign: TextAlign.center,
+              const SizedBox(height: 16),
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    _error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 12),
-
-                  // Quick Demo QR Presets
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _demoQrChip(
-                          'Gupta Kirana ₹3,850',
-                          'upi://pay?pa=guptakirana@okhdfcbank&pn=Gupta%20Kirana%20Store&am=3850',
-                        ),
-                        const SizedBox(width: 8),
-                        _demoQrChip(
-                          'Sharma Sweets ₹7,500',
-                          'upi://pay?pa=sharmasweets@okaxis&pn=Sharma%20Sweets&am=7500',
-                        ),
-                        const SizedBox(width: 8),
-                        _demoQrChip(
-                          'Social Bistro ₹6,800',
-                          'upi://pay?pa=socialbistro@paytm&pn=Social%20Bistro&am=6800',
-                        ),
-                      ],
-                    ),
+                ),
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.ink,
+                  side: const BorderSide(color: AppColors.border),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
                   ),
-                ],
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                onPressed: _manualEntry,
+                icon: const Icon(Icons.edit_outlined, size: 18),
+                label: const Text('Enter UPI ID or paste link'),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              const Text(
+                'Always check the recipient’s name in your UPI app before authorising a payment.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.muted, fontSize: 12, height: 1.6),
+              ),
+            ],
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _demoQrChip(String label, String upiUri) {
-    return InkWell(
-      onTap: () => _handleQrResult(upiUri),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFF16171C),
-          border: Border.all(color: const Color(0xFF2C2D36)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.qr_code_2, size: 14, color: AppColors.primaryGreen),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w800,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-/// Custom Mask Painter that punches a sharp center cutout
-class _ScannerOverlayPainter extends CustomPainter {
-  final Size cutoutSize;
-  final Color borderColor;
-
-  _ScannerOverlayPainter({
-    required this.cutoutSize,
-    required this.borderColor,
-  });
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final backgroundPaint = Paint()
-      ..color = Colors.black.withAlpha(140)
-      ..style = PaintingStyle.fill;
-
-    final cutoutRect = Rect.fromCenter(
-      center: Offset(size.width / 2, size.height / 2),
-      width: cutoutSize.width,
-      height: cutoutSize.height,
-    );
-
-    final backgroundPath = Path()
-      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
-    final cutoutPath = Path()..addRect(cutoutRect);
-
-    final finalPath = Path.combine(
-      PathOperation.difference,
-      backgroundPath,
-      cutoutPath,
-    );
-
-    canvas.drawPath(finalPath, backgroundPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+    ),
+  );
 }

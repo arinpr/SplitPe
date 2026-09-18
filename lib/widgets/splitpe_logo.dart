@@ -1,106 +1,90 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
-class SplitPeLogo extends StatelessWidget {
-  final double size;
-  final bool showBadge;
-  final bool isCompact;
-
-  const SplitPeLogo({
-    super.key,
-    this.size = 28,
-    this.showBadge = true,
-    this.isCompact = false,
-  });
+class SplitPeeLogo extends StatelessWidget {
+  const SplitPeeLogo({super.key, this.compact = false});
+  final bool compact;
 
   @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // 3D NeoPOP High-Res Visual Logo Emblem
-        Container(
-          width: size + 6,
-          height: size + 6,
-          decoration: BoxDecoration(
-            color: Colors.black,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: AppColors.primaryGreen, width: 1.2),
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x660084FF),
-                offset: Offset(2.0, 2.0),
-                blurRadius: 0,
-              ),
-            ],
+  Widget build(BuildContext context) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      Container(
+        width: 44,
+        height: 44,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF2DD4BF), Color(0xFF087F75)],
           ),
-          clipBehavior: Clip.antiAlias,
-          child: Image.asset(
-            'assets/images/logo.png',
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              return Center(
-                child: Text(
-                  '₹',
-                  style: TextStyle(
-                    fontSize: size * 0.65,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.primaryBlue,
-                  ),
-                ),
-              );
-            },
-          ),
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.9), width: 1.5),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF087F75).withValues(alpha: 0.35),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+            const BoxShadow(
+              color: Colors.white,
+              blurRadius: 1,
+              offset: Offset(0, 1),
+            ),
+          ],
         ),
-
-        if (!isCompact) ...[
-          const SizedBox(width: 10),
-          // Logotype
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'SPLIT',
-                style: TextStyle(
-                  color: AppColors.text(context),
-                  fontWeight: FontWeight.w900,
-                  fontSize: size * 0.68,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              Text(
-                'PE',
-                style: TextStyle(
-                  color: AppColors.primaryBlue,
-                  fontWeight: FontWeight.w900,
-                  fontSize: size * 0.68,
-                  letterSpacing: 0.5,
-                ),
-              ),
-            ],
-          ),
-          if (showBadge) ...[
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppColors.chipBg(context),
-                border: Border.all(color: AppColors.primaryBlue, width: 1.0),
-              ),
-              child: const Text(
-                '0% MDR',
-                style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 0.5,
-                  color: AppColors.primaryBlue,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Positioned(
+              top: 1,
+              left: 3,
+              right: 3,
+              height: 12,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.white.withValues(alpha: 0.5),
+                      Colors.white.withValues(alpha: 0.0),
+                    ],
+                  ),
                 ),
               ),
             ),
+            const Icon(Icons.call_split_rounded, color: Colors.white, size: 26),
           ],
-        ],
+        ),
+      ),
+      if (!compact) ...[
+        const SizedBox(width: 12),
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'SplitPee',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.8,
+                color: AppColors.ink,
+              ),
+            ),
+            Text(
+              'Smart UPI Split',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.muted,
+                letterSpacing: 0.2,
+              ),
+            ),
+          ],
+        ),
       ],
-    );
-  }
+    ],
+  );
 }

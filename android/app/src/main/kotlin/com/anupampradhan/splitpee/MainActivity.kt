@@ -1,4 +1,4 @@
-package com.splitpe.app.splitpe
+package com.anupampradhan.splitpee
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -1,155 +1,64 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter/services.dart';
 
-class AppColors {
-  // Official CRED NeoPOP Dark Obsidian Architecture
-  static const Color background = Color(0xFF0C0D10);
-  static const Color surface = Color(0xFF16171B);
-  static const Color surfaceElevated = Color(0xFF1E2026);
-  static const Color cardBorder = Color(0xFF2E303A);
-  static const Color subtleBorder = Color(0xFF22242B);
-  static const Color neoBorder = Color(0xFF383B46);
-  static const Color hardShadow = Color(0xFF000000);
-
-  // Light Mode Color Architecture
-  static const Color lightBackground = Color(0xFFF4F6FA);
-  static const Color lightSurface = Color(0xFFFFFFFF);
-  static const Color lightSurfaceElevated = Color(0xFFEBF0F8);
-  static const Color lightCardBorder = Color(0xFFD6E0EE);
-  static const Color lightNeoBorder = Color(0xFFCBD5E1);
-  static const Color lightTextPrimary = Color(0xFF111827);
-  static const Color lightTextSecondary = Color(0xFF4B5563);
-  static const Color lightTextMuted = Color(0xFF9CA3AF);
-  static const Color lightBlueSurface = Color(0xFFE8F0FE);
-
-  // Google Play & GPay Electric Blue Palette
-  static const Color primaryBlue = Color(0xFF0084FF); // Electric Google Blue
-  static const Color primaryBlueDark = Color(0xFF1A73E8); // Classic Google Material Blue
-  static const Color primaryGreen = primaryBlue; // Seamless alias for whole-app blue theme
-  static const Color greenDark = primaryBlueDark;
-  static const Color blueSurface = Color(0xFF0E1E38); // Midnight blue container tint
-  static const Color neonCyan = Color(0xFF00E5FF);
-  static const Color electricPurple = Color(0xFF7C4DFF);
-  static const Color goldenYellow = Color(0xFFFFD600);
-  static const Color alertRed = Color(0xFFFF1744);
-  static const Color pureWhite = Color(0xFFFFFFFF);
-
-  // CRED & Google Typographic Hierarchy
-  static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xFF8A8F9E);
-  static const Color textMuted = Color(0xFF555A68);
-
-  // Context-aware dynamic color getters
-  static Color bg(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark
-          ? background
-          : lightBackground;
-
-  static Color cardBg(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark
-          ? surface
-          : lightSurface;
-
-  static Color cardElevated(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark
-          ? surfaceElevated
-          : lightSurfaceElevated;
-
-  static Color border(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark
-          ? neoBorder
-          : lightNeoBorder;
-
-  static Color text(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark
-          ? textPrimary
-          : lightTextPrimary;
-
-  static Color textSub(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark
-          ? textSecondary
-          : lightTextSecondary;
-
-  static Color chipBg(BuildContext context) =>
-      Theme.of(context).brightness == Brightness.dark
-          ? blueSurface
-          : lightBlueSurface;
+abstract final class AppColors {
+  static const background = Color(0xFFF3F8FA);
+  static const surface = Colors.white;
+  static const primary = Color(0xFF087F75);
+  static const primarySoft = Color(0xFFDDF4EB);
+  static const ink = Color(0xFF172F3B);
+  static const muted = Color(0xFF566D78);
+  static const border = Color(0xFFDCE8EB);
+  static const lavender = Color(0xFFEEEAFE);
 }
 
-class ThemeController {
-  static final ValueNotifier<ThemeMode> themeMode =
-      ValueNotifier<ThemeMode>(ThemeMode.dark);
-
-  static bool isDark(BuildContext context) {
-    if (themeMode.value == ThemeMode.system) {
-      return MediaQuery.platformBrightnessOf(context) == Brightness.dark;
-    }
-    return themeMode.value == ThemeMode.dark;
-  }
-
-  static void toggleTheme() {
-    themeMode.value =
-        themeMode.value == ThemeMode.dark ? ThemeMode.light : ThemeMode.dark;
-  }
-}
-
-class AppTheme {
-  static ThemeData get darkTheme {
-    return ThemeData(
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: AppColors.background,
-      primaryColor: AppColors.primaryBlue,
-      colorScheme: const ColorScheme.dark(
-        primary: AppColors.primaryBlue,
-        secondary: AppColors.neonCyan,
-        surface: AppColors.surface,
-        error: AppColors.alertRed,
-      ),
-      textTheme: GoogleFonts.spaceGroteskTextTheme(ThemeData.dark().textTheme).apply(
-        bodyColor: AppColors.textPrimary,
-        displayColor: AppColors.textPrimary,
-      ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        centerTitle: false,
-        titleTextStyle: TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 16,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1.0,
-        ),
-      ),
-    );
-  }
-
-  static ThemeData get lightTheme {
-    return ThemeData(
-      brightness: Brightness.light,
-      scaffoldBackgroundColor: AppColors.lightBackground,
-      primaryColor: AppColors.primaryBlueDark,
-      colorScheme: const ColorScheme.light(
-        primary: AppColors.primaryBlueDark,
-        secondary: AppColors.primaryBlue,
-        surface: AppColors.lightSurface,
-        error: AppColors.alertRed,
-      ),
-      textTheme: GoogleFonts.spaceGroteskTextTheme(ThemeData.light().textTheme).apply(
-        bodyColor: AppColors.lightTextPrimary,
-        displayColor: AppColors.lightTextPrimary,
-      ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.lightBackground,
-        elevation: 0,
-        centerTitle: false,
-        iconTheme: IconThemeData(color: AppColors.lightTextPrimary),
-        titleTextStyle: TextStyle(
-          color: AppColors.lightTextPrimary,
-          fontSize: 16,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1.0,
-        ),
-      ),
-    );
-  }
+abstract final class AppTheme {
+  static ThemeData get lightTheme => ThemeData(
+    useMaterial3: true,
+    brightness: Brightness.light,
+    colorScheme: ColorScheme.fromSeed(seedColor: AppColors.primary, brightness: Brightness.light, surface: AppColors.surface).copyWith(primary: AppColors.primary),
+    scaffoldBackgroundColor: Colors.transparent,
+    textTheme: ThemeData.light().textTheme.apply(bodyColor: AppColors.ink, displayColor: AppColors.ink),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Colors.transparent,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      foregroundColor: AppColors.ink,
+      systemOverlayStyle: SystemUiOverlayStyle.dark,
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: Colors.white.withValues(alpha: 0.82),
+      contentPadding: const EdgeInsets.all(17),
+      labelStyle: const TextStyle(color: AppColors.muted, fontSize: 14),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: AppColors.border)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: AppColors.border)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
+    ),
+    filledButtonTheme: FilledButtonThemeData(style: FilledButton.styleFrom(
+      backgroundColor: AppColors.primary,
+      foregroundColor: Colors.white,
+      minimumSize: const Size(48, 54),
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+      textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+    )),
+    outlinedButtonTheme: OutlinedButtonThemeData(style: OutlinedButton.styleFrom(
+      minimumSize: const Size(48, 50),
+      side: const BorderSide(color: AppColors.border),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+    )),
+    chipTheme: ChipThemeData(
+      backgroundColor: Colors.white.withValues(alpha: 0.75),
+      selectedColor: AppColors.primarySoft,
+      side: const BorderSide(color: AppColors.border),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+    ),
+    snackBarTheme: SnackBarThemeData(
+      backgroundColor: AppColors.ink,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    ),
+    dividerColor: AppColors.border,
+  );
 }

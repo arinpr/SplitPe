@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy - SplitPee - Smart UPI Split</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #F3F8FB;
+      --card-bg: rgba(255, 255, 255, 0.78);
+      --card-border: rgba(255, 255, 255, 0.95);
+      --primary: #087F75;
+      --primary-soft: #DDF4EB;
+      --ink: #172F3B;
+      --muted: #566D78;
+      --radius: 28px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: linear-gradient(135deg, #F3F8FB 0%, #EBF5F6 35%, #F6F7FD 72%, #F0FBF7 100%);
+      color: var(--ink);
+      line-height: 1.6;
+      padding: 40px 20px 80px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .glass-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border-radius: var(--radius);
+      border: 1.5px solid var(--card-border);
+      box-shadow: 0 20px 48px rgba(15, 62, 80, 0.08), 0 4px 12px rgba(15, 62, 80, 0.02);
+      padding: 40px;
+      margin-bottom: 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .glass-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.9), rgba(255,255,255,0.2));
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: var(--primary-soft);
+      color: var(--primary);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -1px;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    h2 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--ink);
+      margin: 28px 0 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h2:first-of-type {
+      margin-top: 10px;
+    }
+
+    p {
+      color: var(--muted);
+      font-size: 14.5px;
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+
+    .highlight-box {
+      background: rgba(8, 127, 117, 0.06);
+      border-left: 4px solid var(--primary);
+      padding: 16px 20px;
+      border-radius: 12px;
+      margin: 20px 0;
+      font-size: 14px;
+      color: var(--ink);
+    }
+
+    .copyright-box {
+      padding: 16px 20px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(220, 232, 235, 0.8);
+      font-size: 13px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="glass-card">
+      <div class="badge">LEGAL & PRIVACY</div>
+      <h1>Privacy Policy</h1>
+      <div class="subtitle">Effective Date: 18 September 2026 · SplitPee - Smart UPI Split</div>
+
+      <div class="highlight-box">
+        <strong>Privacy Summary:</strong> SplitPee does not collect, sell, store, or transmit your personal data, bank credentials, contacts, or transaction history. All bill calculations and QR parsing happen 100% locally on your device in volatile memory.
+      </div>
+
+      <h2>1. Overview & Data Ownership</h2>
+      <p>
+        <strong>SplitPee - Smart UPI Split</strong> ("SplitPee", "we", "us", or "our") is owned and operated by <strong>Anupam Pradhan</strong>. This Privacy Policy informs users of our policies regarding the collection, use, and disclosure of personal information when using our mobile application and web services.
+      </p>
+
+      <h2>2. Information Stays Strictly On Your Device</h2>
+      <p>
+        When you enter bill amounts, recipient Virtual Payment Addresses (UPI IDs), merchant names, or notes, this data is processed entirely within your device's local runtime memory (RAM).
+      </p>
+      <p>
+        SplitPee maintains <strong>no accounts, no user profiles, no database backend, no tracking cookies, no advertising SDKs, and no analytics frameworks</strong>. When you close or terminate the application, session data is instantly discarded.
+      </p>
+
+      <h2>3. Camera Permission & QR Code Scanning</h2>
+      <p>
+        Camera permission is requested optionally and solely when you tap to scan a merchant UPI QR code. The camera video feed is processed on-device by Google ML Kit to parse standard UPI parameters (<code>pa</code>, <code>pn</code>, <code>am</code>, <code>cu</code>, <code>tn</code>).
+      </p>
+      <p>
+        SplitPee <strong>never records, takes photos, saves, or uploads any camera frames or images</strong>. Camera permission is not required to use the app; you can type or paste UPI details manually at any time.
+      </p>
+
+      <h2>4. Payments & Third-Party UPI Apps</h2>
+      <p>
+        When you tap "Pay with a UPI App", SplitPee creates an operating system intent (<code>upi://pay?...</code>) passed directly to the UPI payment application you choose (e.g., Google Pay, PhonePe, Paytm, BHIM, CRED, or your bank's app).
+      </p>
+      <p>
+        SplitPee is <strong>not a payment gateway, bank, or payment service provider (PSP)</strong>. We do not process funds, handle money, or have access to your UPI PIN or banking credentials. Your chosen payment app and financial institution handle transactions under their respective privacy policies.
+      </p>
+
+      <h2>5. Checklist & Payment Status Disclaimer</h2>
+      <p>
+        The "Mark as Paid" feature is solely an offline personal checklist for your convenience. SplitPee cannot verify bank transactions or settlement status. Always verify successful payment completion directly within your UPI app and with the recipient.
+      </p>
+
+      <h2>6. Children's Privacy</h2>
+      <p>
+        SplitPee does not address anyone under the age of 13, nor do we knowingly collect personally identifiable information from children.
+      </p>
+
+      <h2>7. Contact & Data Controller Information</h2>
+      <p>
+        If you have questions, feedback, or concerns regarding this Privacy Policy, contact the developer and data controller:
+      </p>
+      <p>
+        <strong>Anupam Pradhan</strong><br>
+        Email: <a href="mailto:anupampradhan161@gmail.com">anupampradhan161@gmail.com</a><br>
+        Application: SplitPee - Smart UPI Split
+      </p>
+
+      <div class="copyright-box">
+        <span>© 2026 Anupam Pradhan. All rights reserved.</span>
+        <span>Version 1.0.0</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

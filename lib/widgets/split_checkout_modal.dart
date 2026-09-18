@@ -1,485 +1,422 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:confetti/confetti.dart';
 import 'package:qr_flutter/qr_flutter.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/split_order.dart';
 import '../models/tranche.dart';
 import '../services/upi_service.dart';
 import '../theme/app_theme.dart';
-import 'clout_share_modal.dart';
-import 'splitpe_logo.dart';
+import 'glass_card.dart';
+import 'liquid_glass.dart';
 
 class SplitCheckoutDialog extends StatefulWidget {
-  final SplitOrder order;
-  final Function(SplitOrder)? onOrderUpdated;
-
   const SplitCheckoutDialog({
     super.key,
     required this.order,
     this.onOrderUpdated,
   });
 
+  final SplitOrder order;
+  final ValueChanged<SplitOrder>? onOrderUpdated;
+
   static Future<void> show(
     BuildContext context, {
     required SplitOrder order,
-    Function(SplitOrder)? onOrderUpdated,
-  }) {
-    return showDialog(
-      context: context,
-      barrierDismissible: true,
-      barrierColor: Colors.black.withAlpha(200),
-      builder: (ctx) => SplitCheckoutDialog(
-        order: order,
-        onOrderUpdated: onOrderUpdated,
-      ),
-    );
-  }
+    ValueChanged<SplitOrder>? onOrderUpdated,
+  }) =>
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        backgroundColor: Colors.transparent,
+        builder: (_) => SplitCheckoutDialog(
+          order: order,
+          onOrderUpdated: onOrderUpdated,
+        ),
+      );
 
   @override
   State<SplitCheckoutDialog> createState() => _SplitCheckoutDialogState();
 }
 
 class _SplitCheckoutDialogState extends State<SplitCheckoutDialog> {
-  late ConfettiController _confettiController;
-  int _activeStepIndex = 0;
+  int _index = 0;
+  bool _busy = false;
+  final Set<String> _opened = {};
+  Tranche get _part => widget.order.tranches[_index];
 
-  @override
-  void initState() {
-    super.initState();
-    _confettiController = ConfettiController(duration: const Duration(seconds: 3));
-    final firstUnpaid = widget.order.tranches.indexWhere((t) => !t.isPaid);
-    _activeStepIndex = firstUnpaid != -1 ? firstUnpaid : 0;
+  void _message(String text) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+    }
   }
 
-  @override
-  void dispose() {
-    _confettiController.dispose();
-    super.dispose();
-  }
-
-  void _markCurrentAsPaid() {
-    final tranche = widget.order.tranches[_activeStepIndex];
-    if (tranche.isPaid) return;
-
+  Future<void> _pay() async {
+    final part = _part;
+    setState(() => _busy = true);
+    final launched = await UpiService.launchUpiIntent(part.upiUri);
+    if (!mounted) return;
     setState(() {
-      tranche.status = TrancheStatus.paid;
-      tranche.paidAt = DateTime.now();
-      tranche.txnRef =
-          'TXN${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
-
-      if (widget.order.isFullyPaid) {
-        _confettiController.play();
-      } else {
-        final nextUnpaid = widget.order.tranches.indexWhere((t) => !t.isPaid);
-        if (nextUnpaid != -1) {
-          _activeStepIndex = nextUnpaid;
-        }
-      }
+      _busy = false;
+      if (launched) _opened.add(part.id);
     });
+    _message(
+      launched
+          ? 'Check the result in your UPI app. Your checklist has not changed.'
+          : 'Could not open a UPI app. Use the QR code, or copy the link to a device with a UPI app.',
+    );
+  }
 
+  Future<void> _togglePaid() async {
+    if (_part.isPaid) {
+      setState(() {
+        _part.status = TrancheStatus.pending;
+        _part.paidAt = null;
+      });
+      widget.onOrderUpdated?.call(widget.order);
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        title: const Text('Checked your payment?'),
+        content: const Text(
+          'Only mark this part after checking your UPI app and confirming with the recipient. This updates your personal checklist; SplitPee cannot verify payment.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Not yet'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Yes, mark paid'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() {
+      _part.status = TrancheStatus.paid;
+      _part.paidAt = DateTime.now();
+    });
     widget.onOrderUpdated?.call(widget.order);
+  }
+
+  Future<void> _share() async {
+    final text = UpiService.generateGroupShareMessage(
+      merchantName: widget.order.merchantName,
+      payerName: _part.payerName ?? 'Your',
+      amount: _part.amount,
+      upiUri: _part.upiUri,
+    );
+    try {
+      final box = context.findRenderObject() as RenderBox?;
+      await SharePlus.instance.share(
+        ShareParams(
+          text: text,
+          title: 'Your SplitPee share',
+          sharePositionOrigin:
+              box == null ? null : box.localToGlobal(Offset.zero) & box.size,
+        ),
+      );
+    } catch (_) {
+      _message('Sharing is unavailable here. Use Copy link instead.');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final order = widget.order;
-    final isDone = order.isFullyPaid;
-    final totalSteps = order.tranches.length;
-    final currentTranche = _activeStepIndex < totalSteps
-        ? order.tranches[_activeStepIndex]
-        : order.tranches.last;
+    final part = _part;
 
-    final isDark = ThemeController.isDark(context);
-
-    return Dialog(
-      backgroundColor: Colors.transparent,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-      child: Stack(
-        alignment: Alignment.topCenter,
-        clipBehavior: Clip.none,
-        children: [
-          Container(
-            width: double.infinity,
-            constraints: const BoxConstraints(maxWidth: 380),
-            decoration: BoxDecoration(
-              color: AppColors.cardBg(context),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: AppColors.border(context), width: 1.2),
-              boxShadow: [
-                BoxShadow(
-                  color: isDark ? Colors.black.withAlpha(160) : Colors.black.withAlpha(30),
-                  blurRadius: 30,
-                  offset: const Offset(0, 15),
-                ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                // Subtle Banknote Security Watermark in Dialog Background
-                Positioned(
-                  right: -10,
-                  top: -10,
-                  child: IgnorePointer(
-                    child: ShaderMask(
-                      shaderCallback: (rect) {
-                        return RadialGradient(
-                          center: Alignment.center,
-                          radius: 0.8,
-                          colors: [
-                            Colors.white.withAlpha(isDark ? 41 : 46),
-                            Colors.transparent,
-                          ],
-                          stops: const [0.4, 1.0],
-                        ).createShader(rect);
-                      },
-                      blendMode: BlendMode.dstIn,
-                      child: Image.asset(
-                        'assets/images/gandhi_currency.png',
-                        width: 140,
-                        height: 140,
-                        color: isDark ? Colors.white : AppColors.primaryBlue,
-                        colorBlendMode: BlendMode.srcIn,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
+    return Center(
+      heightFactor: 1,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: 640,
+          maxHeight: MediaQuery.sizeOf(context).height * 0.92,
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(34)),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.92),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(34)),
+                border: Border(
+                  top: BorderSide(
+                    color: Colors.white.withValues(alpha: 0.95),
+                    width: 1.5,
                   ),
                 ),
-
-                // Dialog Content
-                Padding(
-                  padding: const EdgeInsets.all(22),
-                  child: SingleChildScrollView(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Header Row: Segment Bar & Close Button
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                const SplitPeLogo(size: 16, showBadge: false),
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.chipBg(context),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Text(
-                                    isDone ? 'COMPLETED' : 'TRANCHE ${_activeStepIndex + 1} OF $totalSteps',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.textSub(context),
-                                      letterSpacing: 0.5,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            IconButton(
-                              onPressed: () => Navigator.pop(context),
-                              icon: Icon(Icons.close_rounded, color: AppColors.textSub(context), size: 20),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
-                          ],
+              ),
+              child: SingleChildScrollView(
+                padding: EdgeInsets.fromLTRB(
+                  22,
+                  12,
+                  22,
+                  24 + MediaQuery.paddingOf(context).bottom,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 42,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.border,
+                          borderRadius: BorderRadius.circular(4),
                         ),
-
-                        const SizedBox(height: 14),
-
-                        if (!isDone) ...[
-                          // 1. Sleek Segment Progress Line
-                          Row(
-                            children: List.generate(totalSteps, (index) {
-                              final isPaid = order.tranches[index].isPaid;
-                              final isCurrent = index == _activeStepIndex;
-
-                              return Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _activeStepIndex = index;
-                                    });
-                                  },
-                                  child: Container(
-                                    height: 3.5,
-                                    margin: EdgeInsets.only(right: index == totalSteps - 1 ? 0 : 5),
-                                    decoration: BoxDecoration(
-                                      color: isPaid
-                                          ? AppColors.primaryBlue
-                                          : isCurrent
-                                              ? (isDark ? Colors.white : AppColors.primaryBlue)
-                                              : (isDark ? const Color(0xFF2E2E34) : const Color(0xFFE2E8F0)),
-                                      borderRadius: BorderRadius.circular(2),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: SectionTitle('Your split, sorted.'),
+                        ),
+                        IconButton(
+                          tooltip: 'Close split review',
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close_rounded),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      '₹${order.totalAmount.toStringAsFixed(2)} across ${order.tranches.length} parts',
+                      style: const TextStyle(
+                        color: AppColors.muted,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: LinearProgressIndicator(
+                        value: order.progress,
+                        minHeight: 8,
+                        backgroundColor: AppColors.border,
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          AppColors.primary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${order.tranches.where((t) => t.isPaid).length} of ${order.tranches.length} marked paid by you',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      height: 48,
+                      child: ListView.separated(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: order.tranches.length,
+                        separatorBuilder: (_, _) => const SizedBox(width: 8),
+                        itemBuilder: (_, i) => ChoiceChip(
+                          selected: _index == i,
+                          onSelected: _busy
+                              ? null
+                              : (_) => setState(() => _index = i),
+                          label: Text(
+                            '${order.tranches[i].isPaid ? '✓ ' : ''}${order.tranches[i].payerName ?? 'Part ${i + 1}'}',
                           ),
-
-                          const SizedBox(height: 18),
-
-                          // 2. Payee Name & VPA
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    LiquidGlassCard(
+                      padding: const EdgeInsets.all(22),
+                      child: Column(
+                        children: [
                           Text(
-                            order.merchantName,
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.text(context),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            order.merchantVpa,
+                            part.payerName ?? 'Part ${_index + 1}',
                             style: const TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textMuted,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // 3. Clean Centered QR Code
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withAlpha(isDark ? 80 : 25),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: Opacity(
-                              opacity: currentTranche.isPaid ? 0.3 : 1.0,
-                              child: QrImageView(
-                                data: currentTranche.upiUri,
-                                version: QrVersions.auto,
-                                size: 145.0,
-                                backgroundColor: Colors.white,
-                                eyeStyle: const QrEyeStyle(eyeShape: QrEyeShape.square, color: Colors.black),
-                                dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: Colors.black),
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-
-                          // 4. Hero Amount
-                          Text(
-                            '₹${currentTranche.amount.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w900,
-                              color: AppColors.text(context),
-                              letterSpacing: -1.0,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Total Bill: 0% MDR Qualified',
-                            style: TextStyle(
-                              fontSize: 12,
+                              color: AppColors.muted,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.primaryBlue,
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // 5. Primary Action Button
-                          if (!currentTranche.isPaid) ...[
-                            SizedBox(
-                              width: double.infinity,
-                              height: 48,
-                              child: ElevatedButton(
-                                onPressed: () async {
-                                  final launched = await UpiService.launchUpiIntent(currentTranche.upiUri);
-                                  if (!launched) {
-                                    await UpiService.copyToClipboard(currentTranche.upiUri);
-                                    if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: const Text('⚡ Copied UPI Link to Clipboard!'),
-                                          backgroundColor: isDark ? const Color(0xFF1E1E22) : Colors.black87,
-                                          duration: const Duration(seconds: 2),
-                                        ),
-                                      );
-                                    }
-                                  }
-                                },
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.primaryBlue,
-                                  foregroundColor: Colors.white,
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                child: Text(
-                                  'Pay ₹${currentTranche.amount.toStringAsFixed(0)} via UPI',
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextButton(
-                              onPressed: _markCurrentAsPaid,
-                              child: Text(
-                                'Mark as Paid (Demo)',
-                                style: TextStyle(
-                                  color: AppColors.textSub(context),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ] else ...[
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              decoration: BoxDecoration(
-                                color: isDark ? AppColors.blueSurface : const Color(0xFFE8F0FE),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: AppColors.primaryBlue.withAlpha(80)),
-                              ),
-                              child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(Icons.check_circle_rounded, color: AppColors.primaryBlue, size: 16),
-                                  SizedBox(width: 6),
-                                  Text(
-                                    'Tranche Paid',
-                                    style: TextStyle(
-                                      color: AppColors.primaryBlue,
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (_activeStepIndex < totalSteps - 1) ...[
-                              const SizedBox(height: 8),
-                              TextButton(
-                                onPressed: () {
-                                  setState(() {
-                                    _activeStepIndex++;
-                                  });
-                                },
-                                child: const Text(
-                                  'Next Tranche →',
-                                  style: TextStyle(
-                                    color: AppColors.primaryBlue,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ] else ...[
-                          // Fully Settled View
-                          const SizedBox(height: 12),
-                          Container(
-                            width: 68,
-                            height: 68,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: isDark ? AppColors.blueSurface : const Color(0xFFE8F0FE),
-                              border: Border.all(color: AppColors.primaryBlue, width: 2),
-                            ),
-                            child: const Icon(
-                              Icons.verified_rounded,
-                              color: AppColors.primaryBlue,
-                              size: 38,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            'Bill Fully Settled',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.text(context),
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '₹${order.totalAmount.toStringAsFixed(0)} settled across $totalSteps tranches with zero MDR fee.\nYou retained all your hard-earned Gandhis 💸',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AppColors.textSub(context),
-                              height: 1.4,
+                            '₹${part.amount.toStringAsFixed(2)}',
+                            style: const TextStyle(
+                              fontSize: 38,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -1,
+                              color: AppColors.ink,
                             ),
                           ),
-                          const SizedBox(height: 24),
-                          SizedBox(
-                            width: double.infinity,
-                            height: 48,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                Navigator.pop(context);
-                                CloutShareModal.show(context, order);
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primaryBlue,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                          const SizedBox(height: 14),
+                          Semantics(
+                            label:
+                                'UPI payment QR for ₹${part.amount.toStringAsFixed(2)} to ${order.merchantVpa}',
+                            child: Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(22),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF0C2B38)
+                                        .withValues(alpha: 0.08),
+                                    blurRadius: 18,
+                                    offset: const Offset(0, 6),
+                                  ),
+                                ],
+                                border: Border.all(
+                                  color: AppColors.border,
+                                  width: 1.2,
                                 ),
                               ),
-                              child: const Text(
-                                'Share Zero-MDR Receipt',
-                                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
+                              child: QrImageView(
+                                data: part.upiUri,
+                                size: 190,
+                                backgroundColor: Colors.white,
+                                errorCorrectionLevel: QrErrorCorrectLevel.M,
                               ),
                             ),
                           ),
-                          const SizedBox(height: 8),
-                          TextButton(
-                            onPressed: () => Navigator.pop(context),
-                            child: Text(
-                              'Done',
-                              style: TextStyle(color: AppColors.textSub(context), fontSize: 13, fontWeight: FontWeight.w600),
+                          const SizedBox(height: 14),
+                          Text(
+                            order.merchantName,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          SelectableText(
+                            order.merchantVpa,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: AppColors.muted),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            part.isPaid
+                                ? 'Marked paid by you · unverified'
+                                : 'Review the recipient before paying',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.primary,
                             ),
                           ),
                         ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    LiquidSpringButton(
+                      isFullWidth: true,
+                      onPressed: _busy || part.isPaid ? null : _pay,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _busy
+                                ? Icons.hourglass_top_rounded
+                                : Icons.open_in_new_rounded,
+                            size: 19,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            _busy
+                                ? 'Opening…'
+                                : _opened.contains(part.id)
+                                    ? 'Open UPI App Again'
+                                    : 'Pay with a UPI App',
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.ink,
+                              side: const BorderSide(color: AppColors.border),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            onPressed: () async {
+                              try {
+                                await UpiService.copyToClipboard(part.upiUri);
+                                _message('Payment link copied.');
+                              } catch (_) {
+                                _message(
+                                  'Clipboard unavailable on this device.',
+                                );
+                              }
+                            },
+                            icon: const Icon(Icons.copy_rounded, size: 17),
+                            label: const Text('Copy Link'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.ink,
+                              side: const BorderSide(color: AppColors.border),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            onPressed: _share,
+                            icon: const Icon(
+                              Icons.ios_share_rounded,
+                              size: 17,
+                            ),
+                            label: const Text('Share'),
+                          ),
+                        ),
                       ],
                     ),
-                  ),
+                    const SizedBox(height: 8),
+                    TextButton.icon(
+                      onPressed: _busy ? null : _togglePaid,
+                      icon: Icon(
+                        part.isPaid
+                            ? Icons.undo_rounded
+                            : Icons.check_circle_outline_rounded,
+                        size: 19,
+                      ),
+                      label: Text(
+                        part.isPaid
+                            ? 'Undo marked paid'
+                            : 'I checked — mark as paid',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'SplitPee cannot confirm payment. Check your UPI app and the recipient. This checklist is cleared when you close the app.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.muted,
+                        fontSize: 12,
+                        height: 1.5,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
-
-          // Confetti explosion
-          ConfettiWidget(
-            confettiController: _confettiController,
-            blastDirectionality: BlastDirectionality.explosive,
-            shouldLoop: false,
-            colors: const [
-              AppColors.primaryGreen,
-              AppColors.neonCyan,
-              AppColors.goldenYellow,
-              Colors.white,
-            ],
-          ),
-        ],
+        ),
       ),
     );
   }

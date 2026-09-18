@@ -1,6 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Camera is strictly optional for QR scanning; manual entry is supported without camera -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+
     <application
-        android:label="SplitPe"
+        android:label="SplitPee - Smart UPI Split"
         android:name="${applicationName}"
         android:icon="@mipmap/launcher_icon">
         <activity
@@ -31,23 +37,31 @@
             android:name="flutterEmbedding"
             android:value="2" />
     </application>
-    <!-- Required to query activities that can process text, see:
-         https://developer.android.com/training/package-visibility and
-         https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
 
-         In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
+    <!-- Package visibility queries for Indian UPI apps on Android 11+ (API 30+) -->
     <queries>
-        <!-- Support UPI intent triggers on Android 11+ -->
+        <!-- Support generic UPI intent view -->
         <intent>
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="upi" />
         </intent>
+
+        <!-- Top Indian UPI applications -->
         <package android:name="com.google.android.apps.nbu.paisa.user" />
         <package android:name="com.phonepe.app" />
         <package android:name="net.one97.paytm" />
         <package android:name="in.org.npci.upiapp" />
         <package android:name="com.dreamplug.androidapp" />
+        <package android:name="in.amazon.mShop.android.shopping" />
         <package android:name="com.whatsapp" />
+        <package android:name="com.upi.axispay" />
+        <package android:name="com.csam.icici.bank.imobile" />
+        <package android:name="com.enstage.wibmo.hdfc" />
+        <package android:name="com.sbi.lotusintouch" />
+        <package android:name="com.navi.mutualfunds" />
+        <package android:name="money.super" />
+        <package android:name="com.mobikwik_new" />
+
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
