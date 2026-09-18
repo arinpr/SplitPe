@@ -26,3 +26,11 @@
 
 # Prevent obfuscation of Application and Activity classes
 -keep public class com.anupampradhan.splitpee.MainActivity
+
+# Suppress missing class warnings for optional Google Play Core and GMS annotations
+-dontwarn com.google.android.gms.common.annotation.NoNullnessRewrite
+-dontwarn com.google.android.play.core.splitcompat.**
+-dontwarn com.google.android.play.core.splitinstall.**
+-dontwarn com.google.android.play.core.tasks.**
+-dontwarn com.google.android.play.core.**
+
