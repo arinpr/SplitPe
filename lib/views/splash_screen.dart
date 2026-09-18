@@ -201,24 +201,25 @@ class _SplashScreenState extends State<SplashScreen>
 
   Widget _buildLiquidLogoBadge() {
     return Container(
-      width: 90,
-      height: 90,
+      width: 108,
+      height: 108,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF34D399), Color(0xFF087F75)],
-        ),
-        borderRadius: BorderRadius.circular(30),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
         border: Border.all(
           color: Colors.white.withValues(alpha: 0.95),
-          width: 2.2,
+          width: 2.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF087F75).withValues(alpha: 0.38),
-            blurRadius: 28,
+            color: const Color(0xFF087F75).withValues(alpha: 0.25),
+            blurRadius: 30,
             offset: const Offset(0, 12),
+          ),
+          BoxShadow(
+            color: const Color(0xFF6366F1).withValues(alpha: 0.12),
+            blurRadius: 20,
+            offset: const Offset(0, 6),
           ),
           const BoxShadow(
             color: Colors.white,
@@ -227,35 +228,14 @@ class _SplashScreenState extends State<SplashScreen>
           ),
         ],
       ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          // Gloss reflection
-          Positioned(
-            top: 2,
-            left: 6,
-            right: 6,
-            height: 24,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.white.withValues(alpha: 0.55),
-                    Colors.white.withValues(alpha: 0.0),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const Icon(
-            Icons.call_split_rounded,
-            color: Colors.white,
-            size: 50,
-          ),
-        ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+        child: Image.asset(
+          'assets/images/logo.png',
+          width: 108,
+          height: 108,
+          fit: BoxFit.contain,
+        ),
       ),
     );
   }

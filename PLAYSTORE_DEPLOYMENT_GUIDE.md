@@ -16,6 +16,7 @@
 - **App Name** (max 30 chars): `SplitPee - Smart UPI Split`
 - **Package Name**: `com.anupampradhan.splitpee`
 - **Default Language**: English (United States / India)
+- **App Icon (512x512 PNG)**: Ready in project root: [playstore_icon_512.png](file:///c:/Users/arind/Documents/SplitPe/playstore_icon_512.png) *(Upload this under Store presence > Main store listing > App icon)*
 
 ### Short Description (Max 80 chars)
 > Organise bills, split group expenses & pay effortlessly with your favourite UPI app.

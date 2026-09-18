@@ -13,18 +13,14 @@ class SplitPeeLogo extends StatelessWidget {
         width: 44,
         height: 44,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF2DD4BF), Color(0xFF087F75)],
-          ),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(15),
           border: Border.all(color: Colors.white.withValues(alpha: 0.9), width: 1.5),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF087F75).withValues(alpha: 0.35),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
+              color: const Color(0xFF087F75).withValues(alpha: 0.20),
+              blurRadius: 14,
+              offset: const Offset(0, 5),
             ),
             const BoxShadow(
               color: Colors.white,
@@ -33,30 +29,14 @@ class SplitPeeLogo extends StatelessWidget {
             ),
           ],
         ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Positioned(
-              top: 1,
-              left: 3,
-              right: 3,
-              height: 12,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.white.withValues(alpha: 0.5),
-                      Colors.white.withValues(alpha: 0.0),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const Icon(Icons.call_split_rounded, color: Colors.white, size: 26),
-          ],
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Image.asset(
+            'assets/images/logo.png',
+            width: 44,
+            height: 44,
+            fit: BoxFit.contain,
+          ),
         ),
       ),
       if (!compact) ...[
