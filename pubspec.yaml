@@ -3,7 +3,7 @@ description: "SplitPee - Smart UPI Split. Smart UPI bill tranching and group exp
 homepage: "https://splitpee.vercel.app"
 publish_to: 'none'
 
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ^3.11.3
