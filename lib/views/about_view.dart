@@ -488,7 +488,7 @@ class _AboutViewState extends State<AboutView> {
                   onPressed: () async {
                     try {
                       await launchUrl(
-                        Uri.parse('https://splitpee.app/privacy.html'),
+                        Uri.parse(AppInfo.privacyPolicyUrl),
                         mode: LaunchMode.externalApplication,
                       );
                     } catch (_) {}

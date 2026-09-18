@@ -1,6 +1,6 @@
 name: splitpee
 description: "SplitPee - Smart UPI Split. Smart UPI bill tranching and group expense organizer."
-homepage: "https://splitpee.app"
+homepage: "https://splitpee.vercel.app"
 publish_to: 'none'
 
 version: 1.0.0+1

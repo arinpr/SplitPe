@@ -65,12 +65,16 @@ Support: anupampradhan161@gmail.com
 
 ---
 
-## 2. Privacy Policy URL
+## 2. Official Website & Privacy Policy URLs (Google Play Console)
 
-Use the provided standalone HTML privacy policy page:
-- Host `privacy_policy.html` on your website or GitHub Pages:  
-  `https://yourusername.github.io/SplitPe/privacy_policy.html`
-- Or use the included `web/privacy.html`.
+Enter these exact live URLs in Google Play Console under **Policy and programs > App content > Privacy policy** and **Store settings > Store listing contact details**:
+
+- **Official Privacy Policy URL**:  
+  `https://splitpee.vercel.app/privacy-policy`  
+  *(Live, fully verified, includes developer contact, camera disclosure, zero-data storage policy)*
+- **Official Website**:  
+  `https://splitpee.vercel.app`  
+  *(Live Next.js landing page with web bill splitter and direct Google Play link)*
 
 ---
 
