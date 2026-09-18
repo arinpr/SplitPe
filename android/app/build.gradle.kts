@@ -17,7 +17,7 @@ if (hasKeyProperties) {
 
 android {
     namespace = "com.anupampradhan.splitpee"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
